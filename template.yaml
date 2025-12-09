@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Tech Challenge Fase 4 - Feedback Ingestion Service
+  Arquitetura Serverless para ingestão de feedbacks com DynamoDB e integração Kafka.
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+    Runtime: java17
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        # Injete aqui o endereço do seu broker Kafka (MSK ou outro)
+        KAFKA_BOOTSTRAP_SERVERS: !Ref KafkaBootstrapServers
+        DYNAMODB_TABLE_NAME: !Ref FeedbackTable
+        TOPIC_NAME: feedback-urgente
+
+Parameters:
+  KafkaBootstrapServers:
+    Type: String
+    Description: b-1.demo.kafka.aws:9092
+    Default: "localhost:9092" # Placeholder para deploy
+
+Resources:
+  # 1. Tabela DynamoDB (Serverless / On-Demand)
+  FeedbackTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: FeedbackTable
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      # SimpleTable não suporta OnDemand nativamente no atalho, mas para free tier Provisioned é ok.
+      # Alternativamente use AWS::DynamoDB::Table para mais controle.
+
+  # 2. Função Lambda (Spring Cloud Function)
+  IngestFeedbackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions # Otimização para Java (reduz cold start)
+      Policies:
+        # Permissões Granulares (IAM)
+        - DynamoDBCrudPolicy:
+            TableName: !Ref FeedbackTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - kafka:Produce
+                - ec2:CreateNetworkInterface # Necessário se Kafka estiver em VPC
+              Resource: "*" # Em prod, restrinja ao ARN do Cluster Kafka
+      Events:
+        ApiEvent:
+          Type: HttpApi # API Gateway V2 (Mais barato e rápido)
+          Properties:
+            Path: /avaliacao
+            Method: post
+
+Outputs:
+  FeedbackApiEndpoint:
+    Description: "API Gateway Endpoint URL"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/avaliacao"
+  FunctionArn:
+    Description: "IngestFeedbackFunction ARN"
+    Value: !GetAtt IngestFeedbackFunction.Arn
