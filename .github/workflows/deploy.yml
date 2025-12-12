@@ -1,4 +1,4 @@
-name: Deploy to AWS Lambda
+name: Deploy MS1 (Ingestion)
 
 on:
   push:
@@ -30,7 +30,8 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          # CRÍTICO: Deve ser a mesma região definida no AwsConfig.java
+          aws-region: sa-east-1
 
       - name: Setup AWS SAM CLI
         uses: aws-actions/setup-sam@v2
@@ -41,9 +42,9 @@ jobs:
       - name: SAM Deploy
         run: |
           sam deploy \
-            --stack-name feedback-ingestion-stack \
+            --stack-name feedback-ms1-ingestion \
             --resolve-s3 \
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides KafkaBootstrapServers=${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
+            --no-fail-on-empty-changeset
+          # REMOVIDO: --parameter-overrides (Não usamos mais parâmetros externos)
