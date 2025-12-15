@@ -1,74 +1,48 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  Tech Challenge Fase 4 - Feedback Ingestion Service
-  Arquitetura Serverless para ingestão de feedbacks com DynamoDB e integração Kafka.
+Description: Tech Challenge Fase 4 - Feedback System (3 Microservices)
 
 Globals:
   Function:
     Timeout: 20
     MemorySize: 512
     Runtime: java17
-    Architectures:
-      - x86_64
+    Architectures: [x86_64]
     Environment:
       Variables:
-        # Injete aqui o endereço do seu broker Kafka (MSK ou outro)
-        KAFKA_BOOTSTRAP_SERVERS: !Ref KafkaBootstrapServers
         DYNAMODB_TABLE_NAME: !Ref FeedbackTable
-        TOPIC_NAME: feedback-urgente
-
-Parameters:
-  KafkaBootstrapServers:
-    Type: String
-    Description: b-1.demo.kafka.aws:9092
-    Default: "localhost:9092" # Placeholder para deploy
+        URGENCY_QUEUE_URL: !Ref UrgencyQueue
+        URGENCY_TOPIC_ARN: !Ref UrgencyTopic
+        REPORT_TOPIC_ARN: !Ref ReportTopic
 
 Resources:
-  # 1. Tabela DynamoDB (Serverless / On-Demand)
+  # --- 1. Persistência e Mensageria ---
   FeedbackTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       TableName: FeedbackTable
-      PrimaryKey:
-        Name: id
-        Type: String
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-      # SimpleTable não suporta OnDemand nativamente no atalho, mas para free tier Provisioned é ok.
-      # Alternativamente use AWS::DynamoDB::Table para mais controle.
+      PrimaryKey: { Name: id, Type: String }
 
-  # 2. Função Lambda (Spring Cloud Function)
-  IngestFeedbackFunction:
+  UrgencyQueue: # Fila SQS para comunicação Function 1 -> Function 2
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 60 # Tempo para Lambda processar
+
+  # --- 2. Microsserviço 1: Ingestão (API) ---
+  IngestionFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
-      AutoPublishAlias: live
-      SnapStart:
-        ApplyOn: PublishedVersions # Otimização para Java (reduz cold start)
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: processarFeedback # Nome do Bean
       Policies:
-        # Permissões Granulares (IAM)
-        - DynamoDBCrudPolicy:
-            TableName: !Ref FeedbackTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - kafka:Produce
-                - ec2:CreateNetworkInterface # Necessário se Kafka estiver em VPC
-              Resource: "*" # Em prod, restrinja ao ARN do Cluster Kafka
+        - DynamoDBCrudPolicy: { TableName: !Ref FeedbackTable }
+        - SQSSendMessagePolicy: { QueueName: !GetAtt UrgencyQueue.QueueName }
       Events:
         ApiEvent:
-          Type: HttpApi # API Gateway V2 (Mais barato e rápido)
+          Type: HttpApi
           Properties:
             Path: /avaliacao
             Method: post
-
-Outputs:
-  FeedbackApiEndpoint:
-    Description: "API Gateway Endpoint URL"
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/avaliacao"
-  FunctionArn:
-    Description: "IngestFeedbackFunction ARN"
-    Value: !GetAtt IngestFeedbackFunction.Arn
