@@ -1,10 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Tech Challenge Fase 4 - Feedback System (3 Microservices)
+Description: >
+  Tech Challenge Fase 4 - Microservice 1: Ingestão de Feedback.
 
 Globals:
   Function:
-    Timeout: 20
+    Timeout: 15
     MemorySize: 512
     Runtime: java17
     Architectures: [x86_64]
@@ -12,31 +13,33 @@ Globals:
       Variables:
         DYNAMODB_TABLE_NAME: !Ref FeedbackTable
         URGENCY_QUEUE_URL: !Ref UrgencyQueue
-        URGENCY_TOPIC_ARN: !Ref UrgencyTopic
-        REPORT_TOPIC_ARN: !Ref ReportTopic
+        # ADICIONADO: Força o Spring a usar este Bean específico
+        SPRING_CLOUD_FUNCTION_DEFINITION: processarFeedback
 
 Resources:
-  # --- 1. Persistência e Mensageria ---
   FeedbackTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       TableName: FeedbackTable
       PrimaryKey: { Name: id, Type: String }
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
 
-  UrgencyQueue: # Fila SQS para comunicação Function 1 -> Function 2
+  UrgencyQueue:
     Type: AWS::SQS::Queue
     Properties:
-      VisibilityTimeout: 60 # Tempo para Lambda processar
+      QueueName: urgency-feedback-queue
+      VisibilityTimeout: 60
 
-  # --- 2. Microsserviço 1: Ingestão (API) ---
   IngestionFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
-      Environment:
-        Variables:
-          SPRING_CLOUD_FUNCTION_DEFINITION: processarFeedback # Nome do Bean
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
       Policies:
         - DynamoDBCrudPolicy: { TableName: !Ref FeedbackTable }
         - SQSSendMessagePolicy: { QueueName: !GetAtt UrgencyQueue.QueueName }
@@ -46,3 +49,8 @@ Resources:
           Properties:
             Path: /avaliacao
             Method: post
+
+Outputs:
+  IngestionApi:
+    Description: "Endpoint da API"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/avaliacao"

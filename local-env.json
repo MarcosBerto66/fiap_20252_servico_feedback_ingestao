@@ -1,0 +1,8 @@
+{
+  "IngestionFunction": {
+    "SPRING_CLOUD_FUNCTION_DEFINITION": "processarFeedback",
+    "DYNAMODB_TABLE_NAME": "FeedbackTable",
+    "URGENCY_QUEUE_URL": "https://sqs.sa-east-1.amazonaws.com/000000000000/urgency-feedback-queue",
+    "AWS_REGION": "sa-east-1"
+  }
+}
