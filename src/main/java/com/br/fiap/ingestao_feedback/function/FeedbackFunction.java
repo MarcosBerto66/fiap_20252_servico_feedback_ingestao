@@ -12,8 +12,9 @@ import java.util.function.Function;
 public class FeedbackFunction {
 
     // MS 1: Ingestão (Recebe FeedbackDTO -> Retorna Feedback salvo)
-    @Bean
+    @Bean("processarFeedback")
     public Function<FeedbackDTO, Feedback> processarFeedback(IngestionService service) {
+        System.out.println(">>> [DEBUG] O BEAN 'processarFeedback' FOI INICIALIZADO! <<<");
         return service::processar;
     }
 }
