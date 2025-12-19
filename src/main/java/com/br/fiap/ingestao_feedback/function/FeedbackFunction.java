@@ -17,7 +17,7 @@ public class FeedbackFunction {
         this.ingestionService = ingestionService;
     }
     // MS 1: Ingestão (Recebe FeedbackDTO -> Retorna Feedback salvo)
-    @Bean
+    @Bean("processarFeedback")
     public Function<FeedbackDTO, Feedback> processarFeedback() {
         System.out.println(">>> [DEBUG] O BEAN 'processarFeedback' FOI INICIALIZADO! <<<");
         return ingestionService::processar;

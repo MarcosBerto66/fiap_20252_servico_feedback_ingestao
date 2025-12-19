@@ -15,6 +15,7 @@ Globals:
         URGENCY_QUEUE_URL: !Ref UrgencyQueue
         # ADICIONADO: Força o Spring a usar este Bean específico
         SPRING_CLOUD_FUNCTION_DEFINITION: processarFeedback
+        MAIN_CLASS: com.br.fiap.ingestao_feedback.IngestaoFeedbackApplication
 
 Resources:
   FeedbackTable:
