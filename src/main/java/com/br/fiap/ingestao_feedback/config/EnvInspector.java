@@ -27,12 +27,12 @@ public class EnvInspector implements ApplicationListener<ApplicationReadyEvent> 
             String prop = env.getProperty("spring.cloud.function.definition");
             log.info("ENV SPRING_CLOUD_FUNCTION_DEFINITION='{}' | prop spring.cloud.function.definition='{}'", envVar, prop);
 
-            // also list relevant envs for debugging
-            log.debug("Selected environment variables: {}", Map.of(
-                    "SPRING_PROFILES_ACTIVE", System.getenv("SPRING_PROFILES_ACTIVE"),
-                    "AWS_REGION", System.getenv("AWS_REGION"),
-                    "DYNAMODB_TABLE_NAME", System.getenv("DYNAMODB_TABLE_NAME")
-            ));
+                // also list relevant envs for debugging (avoid Map.of with nulls)
+                java.util.Map<String, String> debugVars = new java.util.HashMap<>();
+                debugVars.put("SPRING_PROFILES_ACTIVE", System.getenv("SPRING_PROFILES_ACTIVE"));
+                debugVars.put("AWS_REGION", System.getenv("AWS_REGION"));
+                debugVars.put("DYNAMODB_TABLE_NAME", System.getenv("DYNAMODB_TABLE_NAME"));
+                log.debug("Selected environment variables: {}", debugVars);
         } catch (Exception e) {
             log.warn("Failed to read environment for debugging", e);
         }

@@ -11,10 +11,15 @@ import java.util.function.Function;
 @Configuration
 public class FeedbackFunction {
 
+    private final IngestionService ingestionService;
+
+    public FeedbackFunction(IngestionService ingestionService) {
+        this.ingestionService = ingestionService;
+    }
     // MS 1: Ingestão (Recebe FeedbackDTO -> Retorna Feedback salvo)
-    @Bean("processarFeedback")
-    public Function<FeedbackDTO, Feedback> processarFeedback(IngestionService service) {
+    @Bean
+    public Function<FeedbackDTO, Feedback> processarFeedback() {
         System.out.println(">>> [DEBUG] O BEAN 'processarFeedback' FOI INICIALIZADO! <<<");
-        return service::processar;
+        return ingestionService::processar;
     }
 }
