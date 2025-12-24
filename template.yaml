@@ -2,6 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Tech Challenge Fase 4 - Microservice 1: Ingestão de Feedback.
+  Inclui Camada de Segurança com AWS Cognito.
 
 Globals:
   Function:
@@ -13,11 +14,36 @@ Globals:
       Variables:
         DYNAMODB_TABLE_NAME: !Ref FeedbackTable
         URGENCY_QUEUE_URL: !Ref UrgencyQueue
-        # ADICIONADO: Força o Spring a usar este Bean específico
         SPRING_CLOUD_FUNCTION_DEFINITION: processarFeedback
         MAIN_CLASS: com.br.fiap.ingestao_feedback.IngestaoFeedbackApplication
 
 Resources:
+  # --- SEGURANÇA (NOVO) ---
+  FeedbackUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: FeedbackStudentsPool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  FeedbackUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: FeedbackAppClient
+      UserPoolId: !Ref FeedbackUserPool
+      GenerateSecret: false # Necessário false para SPAs/Mobile/Postman simples
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # --- INFRAESTRUTURA BASE ---
   FeedbackTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -33,6 +59,21 @@ Resources:
       QueueName: urgency-feedback-queue
       VisibilityTimeout: 60
 
+  # --- API GATEWAY COM AUTH ---
+  FeedbackApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${FeedbackUserPool}"
+              audience:
+                - !Ref FeedbackUserPoolClient
+
+  # --- FUNÇÃO LAMBDA ---
   IngestionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -48,10 +89,17 @@ Resources:
         ApiEvent:
           Type: HttpApi
           Properties:
+            ApiId: !Ref FeedbackApi # Vincula à API segura criada acima
             Path: /avaliacao
             Method: post
 
 Outputs:
   IngestionApi:
-    Description: "Endpoint da API"
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/avaliacao"
+    Description: "Endpoint Seguro da API"
+    Value: !Sub "https://${FeedbackApi}.execute-api.${AWS::Region}.amazonaws.com/avaliacao"
+  CognitoUserPoolId:
+    Description: "ID do User Pool para criar usuários"
+    Value: !Ref FeedbackUserPool
+  CognitoClientId:
+    Description: "ID do Cliente para fazer login"
+    Value: !Ref FeedbackUserPoolClient
