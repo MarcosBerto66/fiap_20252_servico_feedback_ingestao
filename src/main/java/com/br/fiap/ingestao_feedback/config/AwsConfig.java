@@ -12,8 +12,8 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 public class AwsConfig {
 
     // Defina a região centralizada para evitar conflitos (Dynamo e SQS na mesma região)
-    // Importante: Deve bater com a região do deploy no template.yaml (sa-east-1)
-    private static final Region REGION = Region.SA_EAST_1;
+    // Importante: Deve bater com a região do deploy no template.yaml (us-east-1)
+    private static final Region REGION = Region.US_EAST_1;
 
     @Bean
     public DynamoDbClient dynamoDbClient() {

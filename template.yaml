@@ -12,8 +12,8 @@ Globals:
     Architectures: [x86_64]
     Environment:
       Variables:
-        DYNAMODB_TABLE_NAME: !Ref FeedbackTable
-        URGENCY_QUEUE_URL: !Ref UrgencyQueue
+        DYNAMODB_TABLE_NAME: !ImportValue FeedbackTableName
+        URGENCY_QUEUE_URL: !ImportValue FilaUrgenciaQueueUrl
         SPRING_CLOUD_FUNCTION_DEFINITION: processarFeedback
         MAIN_CLASS: com.br.fiap.ingestao_feedback.IngestaoFeedbackApplication
 
@@ -43,22 +43,6 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # --- INFRAESTRUTURA BASE ---
-  FeedbackTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      TableName: FeedbackTable
-      PrimaryKey: { Name: id, Type: String }
-      ProvisionedThroughput:
-        ReadCapacityUnits: 2
-        WriteCapacityUnits: 2
-
-  UrgencyQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: urgency-feedback-queue
-      VisibilityTimeout: 60
-
   # --- API GATEWAY COM AUTH ---
   FeedbackApi:
     Type: AWS::Serverless::HttpApi
@@ -77,14 +61,16 @@ Resources:
   IngestionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: .
+      CodeUri: target/feedback-ingestion-service-1.0.0-SNAPSHOT.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
       Policies:
-        - DynamoDBCrudPolicy: { TableName: !Ref FeedbackTable }
-        - SQSSendMessagePolicy: { QueueName: !GetAtt UrgencyQueue.QueueName }
+        - DynamoDBCrudPolicy:
+            TableName: !ImportValue FeedbackTableName
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue FilaUrgenciaQueueName
       Events:
         ApiEvent:
           Type: HttpApi

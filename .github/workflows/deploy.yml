@@ -31,7 +31,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           # CRÍTICO: Deve ser a mesma região definida no AwsConfig.java
-          aws-region: sa-east-1
+          aws-region: us-east-1
 
       - name: Setup AWS SAM CLI
         uses: aws-actions/setup-sam@v2
