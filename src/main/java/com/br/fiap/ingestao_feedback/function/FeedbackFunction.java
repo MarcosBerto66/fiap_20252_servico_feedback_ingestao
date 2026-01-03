@@ -39,6 +39,7 @@ public class FeedbackFunction {
                 List<String> errors = ex.getConstraintViolations().stream()
                         .map(ConstraintViolation::getMessage)
                         .toList();
+
                 return MessageBuilder.withPayload((Object) errors)
                         .setHeader("statusCode", HttpStatus.BAD_REQUEST.value())
                         .build();
