@@ -105,9 +105,15 @@ Após obter o token de autenticação (Bearer Token), envie o feedback para o AP
 
 ## 📦 Como Fazer o Deploy
 
-1.  **Compile o projeto:**
+> [!WARNING]
+> Para rodar localmente é necessário:
+> - Java 17
+> - Maven
+> - AWS SAM CLI
+
+1. **Build da aplicação (gera o artefato da Lambda):**
 ```bash
-.\mvnw.cmd clean package -DskipTests
+sam build
 ```
 
 2.  **Execute o deploy guiado com base no `samconfig.toml` já existente:**
@@ -115,7 +121,7 @@ Após obter o token de autenticação (Bearer Token), envie o feedback para o AP
 sam deploy
 ```
 
-3. **Para deletar os serviços criados da AWS**
+3. **Para deletar os recursos criados na AWS**
 ```bash
 sam delete --stack-name fiap-feedback-ingest
 ```
