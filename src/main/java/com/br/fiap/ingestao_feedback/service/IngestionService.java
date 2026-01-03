@@ -3,10 +3,12 @@ package com.br.fiap.ingestao_feedback.service;
 import com.br.fiap.ingestao_feedback.dto.FeedbackDTO;
 import com.br.fiap.ingestao_feedback.model.Feedback;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -16,6 +18,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Validated
 public class IngestionService {
 
     private final DynamoDbEnhancedClient dynamoDbClient;
@@ -28,7 +31,7 @@ public class IngestionService {
     @Value("${URGENCY_QUEUE_URL}")
     private String queueUrl;
 
-    public Feedback processar(FeedbackDTO dto) {
+    public Feedback processar(@Valid FeedbackDTO dto) {
         log.info("Recebendo feedback: {}", dto);
 
         // 1. Persistir (Síncrono)
