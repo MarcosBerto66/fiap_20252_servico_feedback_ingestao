@@ -61,7 +61,7 @@ Resources:
   IngestionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: target/feedback-ingestion-service-1.0.0-SNAPSHOT.jar
+      CodeUri: .
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
       AutoPublishAlias: live
       SnapStart:
