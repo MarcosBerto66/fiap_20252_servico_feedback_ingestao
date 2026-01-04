@@ -38,7 +38,42 @@ flowchart LR
 
 Para interagir com o sistema, é necessário autenticar-se via AWS Cognito e utilizar o token gerado para enviar feedbacks.
 
-### 1. Autenticação (AWS Cognito)
+### 1. Configuração do Usuário (Pré-requisito)
+
+Antes de enviar requisições, você deve criar um usuário no AWS Cognito e obter o `ClientId`.
+
+#### A. Obter o ClientId
+
+1. Acesse o **Console da AWS** e vá para o serviço **CloudFormation**.
+
+2. Selecione a stack `feedback-ms1-ingestion`.
+
+3. Vá na aba **Outputs** e copie o valor de `CognitoClientId`.
+
+#### B. Criar e Ativar Usuário
+
+1. Acesse o serviço Amazon Cognito > User Pools.
+
+2. Clique no User Pool criado (ex: FeedbackStudentsPool).
+
+3. Vá em Users > Create user.
+    - Username: aluno_teste (ou outro de sua preferência).
+    - Password: Defina uma senha temporária.
+
+4. **Ativação (Confirmação da Senha):**
+
+    - Para evitar o fluxo de troca de senha no primeiro login, você pode definir a senha como permanente via AWS CLI:
+
+    ```
+    aws cognito-idp admin-set-user-password \
+      --user-pool-id <SEU_USER_POOL_ID> \
+      --username aluno_teste \
+      --password <SUA_SENHA_DEFINITIVA> \
+      --permanent
+    ```
+    *(O `user-pool-id` também pode ser encontrado na aba Outputs do CloudFormation ou no topo da página do User Pool)*
+
+### 2. Autenticação (AWS Cognito)
 
 O serviço utiliza o Cognito User Pool `us-east-1`.
 
@@ -84,7 +119,7 @@ Se o login retornar um desafio `NEW_PASSWORD_REQUIRED`, utilize este passo para 
 
 ---
 
-### 2. Criar Feedback
+### 3. Criar Feedback
 
 Após obter o token de autenticação (Bearer Token), envie o feedback para o API Gateway.
 
